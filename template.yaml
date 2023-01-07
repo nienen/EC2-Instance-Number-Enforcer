@@ -1,0 +1,75 @@
+AWSTemplateFormatVersion: 2010-09-09
+Transform: AWS::Serverless-2016-10-31
+Description: "EC2 Instance Number Enforcer"
+Parameters:
+  MaxNumberOfEC2:
+    Type: String
+    Default: '1'
+Resources:
+  RulesPermission:
+    Type: AWS::Lambda::Permission
+    Properties:
+      FunctionName: !Ref Ec2NumInstancesEnforcer
+      Action: "lambda:InvokeFunction"
+      Principal: "events.amazonaws.com"
+      SourceArn: !GetAtt EventRule.Arn
+  EventRule:
+    Type: AWS::Events::Rule
+    Properties:
+      Description: "EventRule"
+      EventPattern:
+        source:
+          -  "aws.ec2"
+        detail-type:
+          - "EC2 Instance State-change Notification"
+        detail:
+          state: ["running"]
+      State: "ENABLED"
+      Targets:
+        -
+          Arn: !GetAtt Ec2NumInstancesEnforcer.Arn
+          Id: Lambda
+  Ec2NumInstancesEnforcer:
+    Type: AWS::Serverless::Function
+    Properties:
+      Handler: app.lambda_handler
+      Role: !GetAtt LambdaIamRole.Arn
+      Runtime: python3.7
+      CodeUri: ./lambda/scavenger_lab_recorder/
+      Environment:
+        Variables:
+          ALLOWED_REGIONS: !Ref AWS::Region
+          MAX_INSTANCES: !Ref MaxNumberOfEC2
+  LambdaIamRole:
+      Type: "AWS::IAM::Role"
+      Properties:
+        RoleName: LabInstanceCount
+        AssumeRolePolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+                  -
+                    Effect: "Allow"
+                    Principal:
+                        Service:
+                          - lambda.amazonaws.com
+                    Action:
+                        - "sts:AssumeRole"
+        Policies:
+            -
+                  PolicyName: "LambdaPolicy"
+                  PolicyDocument:
+                    Version: "2012-10-17"
+                    Statement:
+                        -
+                          Effect: "Allow"
+                          Action:
+                              - ec2:*
+                          Resource: "*"
+                        -
+                          Effect: "Allow"
+                          Action:
+                              - "logs:CreateLogGroup"
+                              - "logs:CreateLogStream"
+                              - "logs:PutLogEvents"
+                          Resource: "*"
+            
