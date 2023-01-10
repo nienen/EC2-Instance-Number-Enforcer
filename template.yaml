@@ -32,10 +32,10 @@ Resources:
   Ec2NumInstancesEnforcer:
     Type: AWS::Serverless::Function
     Properties:
+      CodeUri: ./lambda/
       Handler: app.lambda_handler
       Role: !GetAtt LambdaIamRole.Arn
-      Runtime: python3.7
-      CodeUri: ./lambda/scavenger_lab_recorder/
+      Runtime: python3.8
       Environment:
         Variables:
           ALLOWED_REGIONS: !Ref AWS::Region
@@ -43,7 +43,7 @@ Resources:
   LambdaIamRole:
       Type: "AWS::IAM::Role"
       Properties:
-        RoleName: LabInstanceCount
+        RoleName: InstanceEnforcer
         AssumeRolePolicyDocument:
             Version: "2012-10-17"
             Statement:
